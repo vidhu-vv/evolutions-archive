@@ -5,16 +5,15 @@ SvelteKit archive site for UCLA Radio recordings.
 ## Getting started
 
 1. Install dependencies with `npm install`
-2. Choose one archive source:
-3. Publish `archive-manifest.json` somewhere public
-4. Set `PUBLIC_ARCHIVE_BUCKET_URL` or `PUBLIC_ARCHIVE_MANIFEST_URL`
+2. Edit the local `static/archive-manifest.json`
+3. Set `PUBLIC_ARCHIVE_BUCKET_URL`
 5. Run `npm run dev`
 
 ## Cloudflare bucket mode
 
-This project now builds as a static Vite/SvelteKit site. It fetches a public manifest in the browser, so it does not require Wrangler or a server runtime.
+This project now builds as a static Vite/SvelteKit site. It always reads the bundled local `archive-manifest.json` file and uses your R2 bucket URL for the audio files.
 
-If `PUBLIC_ARCHIVE_BUCKET_URL` is set, the site expects `archive-manifest.json` at the bucket root unless `PUBLIC_ARCHIVE_MANIFEST_URL` is provided directly.
+Set `PUBLIC_ARCHIVE_BUCKET_URL` to your public R2/custom domain, and keep the episode list in `static/archive-manifest.json`.
 
 For this project, a working example is:
 

@@ -9,10 +9,7 @@
 	let activeEpisode = null;
 	let isLoading = true;
 
-	const manifestUrl =
-		env.PUBLIC_ARCHIVE_MANIFEST_URL ||
-		(env.PUBLIC_ARCHIVE_BUCKET_URL ? `${env.PUBLIC_ARCHIVE_BUCKET_URL.replace(/\/+$/, '')}/archive-manifest.json` : '');
-	const source = env.PUBLIC_ARCHIVE_BUCKET_URL || env.PUBLIC_ARCHIVE_MANIFEST_URL ? 'Cloudflare Archive' : 'Manifest Archive';
+	const source = env.PUBLIC_ARCHIVE_BUCKET_URL ? 'Cloudflare Archive' : 'Local Manifest';
 
 	/** @type {Array<{ label: string; episodes: import('$lib/archive').Episode[] }>} */
 	let seasonGroups = [];
@@ -45,19 +42,7 @@
 
 	onMount(async () => {
 		try {
-			episodes = await loadArchiveFromManifest(
-				fetch,
-				manifestUrl || '/archive-manifest.json',
-				env.PUBLIC_ARCHIVE_BUCKET_URL
-			);
-
-			if (!episodes.length && manifestUrl) {
-				episodes = await loadArchiveFromManifest(
-					fetch,
-					'/archive-manifest.json',
-					env.PUBLIC_ARCHIVE_BUCKET_URL
-				);
-			}
+			episodes = await loadArchiveFromManifest(fetch, '/archive-manifest.json', env.PUBLIC_ARCHIVE_BUCKET_URL);
 		} finally {
 			activeEpisode = episodes[0] ?? null;
 			isLoading = false;
@@ -109,9 +94,9 @@
 			<h2>{isLoading ? 'Loading archive...' : 'No archive loaded yet'}</h2>
 			<p class="empty-copy">
 				{#if isLoading}
-					Fetching the public archive manifest.
+					Loading the local archive manifest.
 				{:else}
-					Add a public manifest URL or bucket URL and the player will populate automatically.
+					Add a bundled <code>archive-manifest.json</code> and a bucket URL to populate the archive.
 				{/if}
 			</p>
 		{/if}
@@ -162,8 +147,8 @@
 			<div class="empty-state">
 				<p>{isLoading ? 'Loading recordings...' : 'No recordings found yet.'}</p>
 				<p>
-					Set <code>PUBLIC_ARCHIVE_BUCKET_URL</code> or <code>PUBLIC_ARCHIVE_MANIFEST_URL</code> so the
-					static site knows where to fetch the manifest.
+					This site reads from the local <code>/archive-manifest.json</code> file and uses
+					<code>PUBLIC_ARCHIVE_BUCKET_URL</code> to build the mp3 URLs.
 				</p>
 			</div>
 		{/if}
