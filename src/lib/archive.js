@@ -223,7 +223,13 @@ export async function loadArchiveFromManifest(fetcher, manifestUrl, bucketBaseUr
 		return [];
 	}
 
-	const response = await fetcher(manifestUrl);
+	let response;
+	try {
+		response = await fetcher(manifestUrl);
+	} catch {
+		return [];
+	}
+
 	if (!response.ok) {
 		return [];
 	}

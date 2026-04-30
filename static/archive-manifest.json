@@ -1,0 +1,64 @@
+{
+  "episodes": [
+    {
+      "key": "evs1e1.mp3",
+      "size": "144 MB",
+      "title": "S1E1: Tyler, The Creator"
+    },
+    {
+      "key": "evs1e2.mp3",
+      "size": "144.01 MB",
+      "title": "S1E2: Michael Jackson"
+    },
+    {
+      "key": "evs1e3.mp3",
+      "size": "144.01 MB",
+      "title": "S1E3: Blood Orange"
+    },
+    {
+      "key": "evs1e4.mp3",
+      "size": "144.99 MB",
+      "title": "S1E4: Magdalena Bay"
+    },
+    {
+      "key": "evs1e5.mp3",
+      "size": "146.99 MB",
+      "title": "S1E5: Opium"
+    },
+    {
+      "key": "evs1e6.mp3",
+      "size": "145 MB",
+      "title": "S1E6: TV Girl"
+    },
+    {
+      "key": "evs1e7.mp3",
+      "size": "146 MB",
+      "title": "S1E7: Billie Eilish"
+    },
+    {
+      "key": "evs1e8.mp3",
+      "size": "145 MB",
+      "title": "S1E8: Frank Ocean"
+    },
+    {
+      "key": "evs1e9.mp3",
+      "size": "145 MB",
+      "title": "S1E9: Foushee"
+    },
+    {
+      "key": "evs1e10.mp3",
+      "size": "144.99 MB",
+      "title": "S1E10: Pink Floyd"
+    },
+    {
+      "key": "evs2e1.mp3",
+      "size": "145 MB",
+      "title": "S2E1: Black Country, New Road"
+    },
+    {
+      "key": "evs2e2.mp3",
+      "size": "144.02 MB",
+      "title": "S2E2: Tame Impala"
+    }
+  ]
+}

@@ -44,9 +44,24 @@
 	};
 
 	onMount(async () => {
-		episodes = await loadArchiveFromManifest(fetch, manifestUrl, env.PUBLIC_ARCHIVE_BUCKET_URL);
-		activeEpisode = episodes[0] ?? null;
-		isLoading = false;
+		try {
+			episodes = await loadArchiveFromManifest(
+				fetch,
+				manifestUrl || '/archive-manifest.json',
+				env.PUBLIC_ARCHIVE_BUCKET_URL
+			);
+
+			if (!episodes.length && manifestUrl) {
+				episodes = await loadArchiveFromManifest(
+					fetch,
+					'/archive-manifest.json',
+					env.PUBLIC_ARCHIVE_BUCKET_URL
+				);
+			}
+		} finally {
+			activeEpisode = episodes[0] ?? null;
+			isLoading = false;
+		}
 	});
 
 	/** @param {import('$lib/archive').Episode} episode */
