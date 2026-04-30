@@ -1,10 +1,4 @@
-import { readdir, stat } from 'node:fs/promises';
-import path from 'node:path';
-import { env } from '$env/dynamic/private';
-import { episodeOverrides } from '$lib/server/episode-overrides';
-
-const ARCHIVE_ROOT = path.resolve('archive');
-const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac']);
+import { episodeOverrides } from '$lib/episode-overrides';
 
 /**
  * @typedef {object} Episode
@@ -21,6 +15,17 @@ const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac
  * @property {number | null} episodeNumber
  */
 
+/**
+ * @typedef {object} RemoteManifestEpisode
+ * @property {string=} key
+ * @property {string=} file
+ * @property {string=} filename
+ * @property {string=} path
+ * @property {string=} url
+ * @property {string=} size
+ * @property {string=} title
+ */
+
 /** @param {string} value */
 function titleCase(value) {
 	return value
@@ -30,17 +35,29 @@ function titleCase(value) {
 		.join(' ');
 }
 
-/** @param {number} bytes */
-function humanSize(bytes) {
-	if (!bytes) return 'Unknown size';
-	const units = ['B', 'KB', 'MB', 'GB'];
-	let size = bytes;
-	let index = 0;
-	while (size >= 1024 && index < units.length - 1) {
-		size /= 1024;
-		index += 1;
-	}
-	return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+/** @param {string} input */
+function normalizeSlashes(input) {
+	return input.replace(/\\/g, '/');
+}
+
+/** @param {string} input */
+function basename(input) {
+	return normalizeSlashes(input).split('/').pop() ?? input;
+}
+
+/** @param {string} input */
+function dirname(input) {
+	const normalized = normalizeSlashes(input);
+	const parts = normalized.split('/');
+	parts.pop();
+	return parts.length ? parts.join('/') : '.';
+}
+
+/** @param {string} input */
+function extname(input) {
+	const file = basename(input);
+	const dotIndex = file.lastIndexOf('.');
+	return dotIndex >= 0 ? file.slice(dotIndex) : '';
 }
 
 /** @param {string} year
@@ -59,8 +76,8 @@ function formatDateFromParts(year, month, day) {
 
 /** @param {string} relativePath */
 function parseEpisodeName(relativePath) {
-	const ext = path.extname(relativePath);
-	const baseName = path.basename(relativePath, ext);
+	const ext = extname(relativePath);
+	const baseName = basename(relativePath).slice(0, basename(relativePath).length - ext.length);
 	const normalized = baseName
 		.replace(/[_]+/g, ' ')
 		.replace(/\s+/g, ' ')
@@ -112,11 +129,12 @@ function parseEpisodeName(relativePath) {
  */
 function buildEpisode(relativePath, src, size, explicitTitle) {
 	const parsed = parseEpisodeName(relativePath);
-	const folderName = path.dirname(relativePath) === '.' ? 'Main Archive' : path.dirname(relativePath);
+	const relativeDirname = dirname(relativePath);
+	const folderName = relativeDirname === '.' ? 'Main Archive' : relativeDirname;
 	const overrideTitle =
 		explicitTitle?.trim() ||
 		episodeOverrides[relativePath]?.trim() ||
-		episodeOverrides[path.basename(relativePath)]?.trim() ||
+		episodeOverrides[basename(relativePath)]?.trim() ||
 		null;
 
 	return {
@@ -126,7 +144,7 @@ function buildEpisode(relativePath, src, size, explicitTitle) {
 		episodeLabel: parsed.episodeLabel,
 		folder: folderName,
 		size: size ?? 'Streaming',
-		filename: path.basename(relativePath),
+		filename: basename(relativePath),
 		src,
 		source: src.startsWith('http') ? 'cloudflare' : 'local',
 		seasonNumber: parsed.seasonNumber,
@@ -137,7 +155,7 @@ function buildEpisode(relativePath, src, size, explicitTitle) {
 /** @param {Episode} a
  * @param {Episode} b
  */
-function compareEpisodes(a, b) {
+export function compareEpisodes(a, b) {
 	const aHasSeasonEpisode = a.seasonNumber !== null && a.episodeNumber !== null;
 	const bHasSeasonEpisode = b.seasonNumber !== null && b.episodeNumber !== null;
 
@@ -158,51 +176,6 @@ function compareEpisodes(a, b) {
 	return b.filename.localeCompare(a.filename, undefined, { numeric: true, sensitivity: 'base' });
 }
 
-/** @param {string} currentDirectory
- * @returns {Promise<Episode[]>}
- */
-async function walkDirectory(currentDirectory) {
-	const entries = await readdir(currentDirectory, { withFileTypes: true });
-	const files = await Promise.all(
-		/** @param {import('node:fs').Dirent} entry */
-		entries.map(async (entry) => {
-			const absolutePath = path.join(currentDirectory, entry.name);
-			if (entry.isDirectory()) {
-				return walkDirectory(absolutePath);
-			}
-
-			const extension = path.extname(entry.name).toLowerCase();
-			if (!AUDIO_EXTENSIONS.has(extension)) {
-				return [];
-			}
-
-			const details = await stat(absolutePath);
-			const relativePath = path.relative(ARCHIVE_ROOT, absolutePath);
-			return [
-				buildEpisode(
-					relativePath,
-					`/archive/${relativePath.split(path.sep).map(encodeURIComponent).join('/')}`,
-					humanSize(details.size),
-					null
-				)
-			];
-		})
-	);
-
-	return files.flat();
-}
-
-/**
- * @typedef {object} RemoteManifestEpisode
- * @property {string=} key
- * @property {string=} file
- * @property {string=} filename
- * @property {string=} path
- * @property {string=} url
- * @property {string=} size
- * @property {string=} title
- */
-
 /** @param {string} input */
 function toDisplayPath(input) {
 	return input.replace(/^\/+/, '').trim();
@@ -220,7 +193,7 @@ function joinUrl(base, key) {
  * @param {string | undefined} bucketBaseUrl
  * @returns {Episode[]}
  */
-function normalizeRemoteManifest(manifest, bucketBaseUrl) {
+export function normalizeRemoteManifest(manifest, bucketBaseUrl) {
 	const entries = Array.isArray(manifest) ? manifest : manifest.episodes ?? [];
 
 	/** @type {Episode[]} */
@@ -236,24 +209,21 @@ function normalizeRemoteManifest(manifest, bucketBaseUrl) {
 		episodes.push(buildEpisode(relativePath, url, entry.size, entry.title));
 	}
 
-	return episodes;
+	return episodes.sort(compareEpisodes);
 }
 
 /**
  * @param {typeof fetch} fetcher
+ * @param {string | null | undefined} manifestUrl
+ * @param {string | null | undefined} bucketBaseUrl
  * @returns {Promise<Episode[]>}
  */
-async function loadRemoteArchive(fetcher) {
-	const manifestUrl = env.ARCHIVE_MANIFEST_URL;
-	const bucketBaseUrl = env.ARCHIVE_BUCKET_URL;
-	const resolvedManifestUrl =
-		manifestUrl ?? (bucketBaseUrl ? `${bucketBaseUrl.replace(/\/+$/, '')}/archive-manifest.json` : null);
-
-	if (!resolvedManifestUrl) {
+export async function loadArchiveFromManifest(fetcher, manifestUrl, bucketBaseUrl) {
+	if (!manifestUrl) {
 		return [];
 	}
 
-	const response = await fetcher(resolvedManifestUrl);
+	const response = await fetcher(manifestUrl);
 	if (!response.ok) {
 		return [];
 	}
@@ -261,31 +231,8 @@ async function loadRemoteArchive(fetcher) {
 	try {
 		/** @type {RemoteManifestEpisode[] | { episodes?: RemoteManifestEpisode[] }} */
 		const manifest = await response.json();
-		return normalizeRemoteManifest(manifest, bucketBaseUrl);
+		return normalizeRemoteManifest(manifest, bucketBaseUrl ?? undefined);
 	} catch {
 		return [];
 	}
 }
-
-/** @param {typeof fetch} fetcher
- * @returns {Promise<Episode[]>}
- */
-export async function loadArchive(fetcher) {
-	if (env.ARCHIVE_MANIFEST_URL || env.ARCHIVE_BUCKET_URL) {
-		const remoteItems = await loadRemoteArchive(fetcher);
-		return remoteItems.sort(compareEpisodes);
-	}
-
-	try {
-		const items = await walkDirectory(ARCHIVE_ROOT);
-		return items.sort(compareEpisodes);
-	} catch (error) {
-		if (/** @type {{ code?: string }} */ (error).code === 'ENOENT') {
-			return [];
-		}
-
-		throw error;
-	}
-}
-
-export { ARCHIVE_ROOT };

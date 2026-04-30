@@ -6,20 +6,20 @@ SvelteKit archive site for UCLA Radio recordings.
 
 1. Install dependencies with `npm install`
 2. Choose one archive source:
-3. Local: put recordings in the top-level `archive/` folder
-4. Cloudflare: set `ARCHIVE_BUCKET_URL` or `ARCHIVE_MANIFEST_URL`
+3. Publish `archive-manifest.json` somewhere public
+4. Set `PUBLIC_ARCHIVE_BUCKET_URL` or `PUBLIC_ARCHIVE_MANIFEST_URL`
 5. Run `npm run dev`
-
-Nested folders inside `archive/` are supported. The homepage scans for common audio formats like `.mp3`, `.wav`, `.m4a`, `.aac`, `.ogg`, and `.flac`.
 
 ## Cloudflare bucket mode
 
-If `ARCHIVE_BUCKET_URL` is set, the site expects `archive-manifest.json` at the bucket root unless `ARCHIVE_MANIFEST_URL` is provided directly.
+This project now builds as a static Vite/SvelteKit site. It fetches a public manifest in the browser, so it does not require Wrangler or a server runtime.
+
+If `PUBLIC_ARCHIVE_BUCKET_URL` is set, the site expects `archive-manifest.json` at the bucket root unless `PUBLIC_ARCHIVE_MANIFEST_URL` is provided directly.
 
 For this project, a working example is:
 
 ```bash
-ARCHIVE_BUCKET_URL=https://evobucket.vidhuv.com
+PUBLIC_ARCHIVE_BUCKET_URL=https://evobucket.vidhuv.com
 ```
 
 Example manifest:
@@ -60,7 +60,7 @@ Episodes are automatically sorted by season and episode number when filenames ma
 You can rename any episode in either of two ways:
 
 1. Add a `title` field in `archive-manifest.json`
-2. Edit [src/lib/server/episode-overrides.js](/Users/vidhuv/Documents/Personal/EvSite/src/lib/server/episode-overrides.js) and map a filename to a custom title
+2. Edit [src/lib/episode-overrides.js](/Users/vidhuv/Documents/Personal/EvSite/src/lib/episode-overrides.js) and map a filename to a custom title
 
 Example:
 
